@@ -2,59 +2,103 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Tap Game</title>
+  <title>Bitcoin Tap Game</title>
 
   <style>
     body {
-      background: #111;
+      margin: 0;
+      background: radial-gradient(circle at top, #1b1b1b, #0a0a0a);
       color: white;
-      text-align: center;
       font-family: Arial;
-      padding-top: 100px;
+      text-align: center;
+      overflow: hidden;
     }
 
-    h1 { font-size: 40px; }
+    h1 {
+      margin-top: 60px;
+      font-size: 38px;
+      color: #f7931a;
+      text-shadow: 0 0 10px rgba(247,147,26,0.5);
+    }
 
     #coins {
-      font-size: 30px;
-      margin: 20px;
+      font-size: 34px;
+      margin-top: 20px;
+      color: #ffd27a;
+    }
+
+    .btc {
+      font-size: 140px;
+      margin-top: 60px;
+      cursor: pointer;
+      display: inline-block;
+      transition: transform 0.1s ease;
+      filter: drop-shadow(0 0 20px rgba(247,147,26,0.5));
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .btc:active {
+      transform: scale(0.92);
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    .pulse {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(247,147,26,0.6);
+      animation: pop 0.6s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(6); opacity: 0; }
     }
 
     button {
-      font-size: 30px;
-      padding: 20px 40px;
-      border-radius: 20px;
+      margin-top: 30px;
+      font-size: 18px;
+      padding: 10px 20px;
+      border-radius: 10px;
       border: none;
-      background: gold;
+      background: #f7931a;
+      color: black;
       cursor: pointer;
-    }
-
-    button:active {
-      transform: scale(0.95);
     }
   </style>
 </head>
 
 <body>
 
-  <h1>🪙 Tap Game</h1>
+  <h1>⚡ Bitcoin Tap Game</h1>
 
-  <div id="coins">Coins: 0</div>
+  <div id="coins">₿ 0</div>
 
-  <button onclick="tap()">TAP +1</button>
+  <div class="btc" onclick="tap(event)">₿</div>
+
+  <br>
+  <button onclick="reset()">Reset view</button>
 
   <script>
+    let userId = "1";
     let user = null;
 
     async function load() {
-      let res = await fetch("/user/1");
+      let res = await fetch(`/user/${userId}`);
       user = await res.json();
 
       document.getElementById("coins").innerText =
-        "Coins: " + user.coins;
+        "₿ " + user.coins;
     }
 
-    async function tap() {
+    async function tap(e) {
       user.coins += user.power;
 
       await fetch("/save", {
@@ -64,7 +108,25 @@
       });
 
       document.getElementById("coins").innerText =
-        "Coins: " + user.coins;
+        "₿ " + user.coins;
+
+      createEffect(e);
+    }
+
+    function createEffect(e) {
+      const dot = document.createElement("div");
+      dot.classList.add("pulse");
+
+      dot.style.left = e.clientX + "px";
+      dot.style.top = e.clientY + "px";
+
+      document.body.appendChild(dot);
+
+      setTimeout(() => dot.remove(), 600);
+    }
+
+    function reset() {
+      window.scrollTo(0, 0);
     }
 
     load();
