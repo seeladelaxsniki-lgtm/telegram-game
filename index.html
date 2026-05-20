@@ -58,7 +58,7 @@ header {
   display:block;
 }
 
-/* BITCOIN */
+/* BTC */
 .btc {
   font-size:160px;
   margin-top:70px;
@@ -78,27 +78,9 @@ header {
   margin:8px;
   border:none;
   border-radius:10px;
-  cursor:pointer;
 }
 
-.buy {
-  background:#f7931a;
-  color:black;
-}
-
-.locked {
-  background:#333;
-  color:#777;
-}
-
-/* LB */
-.item {
-  display:flex;
-  justify-content:space-between;
-  padding:10px;
-  background:#111;
-  margin:5px;
-}
+.buy { background:#f7931a; color:black; }
 </style>
 </head>
 
@@ -115,8 +97,8 @@ header {
 
 <!-- SHOP -->
 <div id="shop" class="screen">
-  <button id="up1" class="btn buy" onclick="buy1()">+1 Power (150₿)</button>
-  <button id="up2" class="btn buy" onclick="buy2()">+2 Power (400₿)</button>
+  <button class="btn buy" onclick="buy1()">+1 Power (150₿)</button>
+  <button class="btn buy" onclick="buy2()">+2 Power (400₿)</button>
 </div>
 
 <!-- LEADERBOARD -->
@@ -137,7 +119,7 @@ header {
 let user=null;
 let userId=null;
 
-/* TELEGRAM INIT */
+/* INIT TELEGRAM */
 async function init(){
 
   if(window.Telegram && Telegram.WebApp){
@@ -167,18 +149,15 @@ async function init(){
 
 /* LOAD */
 async function load(){
-  let r=await fetch(`/user/${userId}`);
-  user=await r.json();
+  let r = await fetch(`/user/${userId}`);
+  user = await r.json();
 
-  if(!user.power) user.power=1;
-
-  document.getElementById("coins").innerText="₿ "+user.coins;
+  document.getElementById("coins").innerText = "₿ " + user.coins;
 }
 
 /* TAP */
 async function tap(){
   user.coins += user.power;
-
   await save();
   load();
 }
@@ -194,39 +173,35 @@ async function save(){
 
 /* SHOP */
 async function buy1(){
-  if(user.coins<150) return;
-  user.coins-=150;
-  user.power+=1;
+  if(user.coins < 150) return;
+  user.coins -= 150;
+  user.power += 1;
   await save();
   load();
 }
 
 async function buy2(){
-  if(user.coins<400) return;
-  user.coins-=400;
-  user.power+=2;
+  if(user.coins < 400) return;
+  user.coins -= 400;
+  user.power += 2;
   await save();
   load();
 }
 
-/* LB */
+/* LEADERBOARD */
 async function loadLB(){
-  let r=await fetch("/leaderboard");
-  let data=await r.json();
+  let r = await fetch("/leaderboard");
+  let data = await r.json();
 
-  let html="";
+  let html = "";
 
   data.forEach((u,i)=>{
-    html+=`
-      <div class="item">
-        <div>#${i+1}</div>
-        <div>${u.name}</div>
-        <div>${u.coins}</div>
-      </div>
+    html += `
+      <div>#${i+1} ${u.name} - ${u.coins}</div>
     `;
   });
 
-  document.getElementById("list").innerHTML=html;
+  document.getElementById("list").innerHTML = html;
 }
 
 /* NAV */
