@@ -8,7 +8,7 @@ dp = Dispatcher()
 
 @dp.message()
 async def start(msg: types.Message):
-    await msg.answer("🚀 Bot работает 24/7")
+    await msg.answer("🚀 Bot live")
 
 async def main():
     await dp.start_polling(bot)
