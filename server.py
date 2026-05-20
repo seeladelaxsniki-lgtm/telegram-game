@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import sqlite3
 import os
 
@@ -18,10 +18,29 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# ================= HOME =================
+# ================= HOME (FRONTEND) =================
 @app.route("/")
 def home():
-    return "🚀 Server is running!"
+    return send_from_directory(".", "index.html")
+
+# ================= GET USER =================
+@app.route("/user/<uid>")
+def user(uid):
+    cur.execute("SELECT * FROM users WHERE id=?", (uid,))
+    row = cur.fetchone()
+
+    if not row:
+        # создаём нового игрока
+        row = (uid, "unknown", 0, 1)
+        cur.execute("INSERT INTO users VALUES (?, ?, ?, ?)", row)
+        conn.commit()
+
+    return jsonify({
+        "id": row[0],
+        "name": row[1],
+        "coins": row[2],
+        "power": row[3]
+    })
 
 # ================= SAVE USER =================
 @app.route("/save", methods=["POST"])
@@ -34,33 +53,12 @@ def save():
     power = int(data["power"])
 
     cur.execute("""
-    INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?)
+        INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?)
     """, (user_id, name, coins, power))
 
     conn.commit()
 
     return jsonify({"ok": True})
-
-# ================= GET USER =================
-@app.route("/user/<uid>")
-def user(uid):
-    cur.execute("SELECT * FROM users WHERE id=?", (uid,))
-    row = cur.fetchone()
-
-    if not row:
-        return jsonify({
-            "id": uid,
-            "name": "unknown",
-            "coins": 0,
-            "power": 1
-        })
-
-    return jsonify({
-        "id": row[0],
-        "name": row[1],
-        "coins": row[2],
-        "power": row[3]
-    })
 
 # ================= LEADERBOARD =================
 @app.route("/leaderboard")
@@ -79,7 +77,7 @@ def leaderboard():
         for x in data
     ])
 
-# ================= RUN SERVER =================
+# ================= RUN =================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
