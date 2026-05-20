@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# ================= FRONTEND =================
+# ================= FRONT =================
 @app.route("/")
-def index():
+def home():
     return send_from_directory("static", "index.html")
 
 # ================= USER =================
@@ -33,7 +33,7 @@ def user(uid):
     if not row:
         return jsonify({
             "id": uid,
-            "name": "unknown",
+            "name": "player",
             "coins": 0,
             "power": 1,
             "energy": 100
@@ -92,11 +92,11 @@ def buy():
         coins -= 150
         power += 1
 
-    if item == "p2" and coins >= 400:
+    elif item == "p2" and coins >= 400:
         coins -= 400
         power += 2
 
-    if item == "energy" and coins >= 300:
+    elif item == "energy" and coins >= 300:
         coins -= 300
         energy += 50
 
