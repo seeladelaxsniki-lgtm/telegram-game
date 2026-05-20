@@ -2,13 +2,12 @@ from flask import Flask, send_from_directory
 
 app = Flask(__name__)
 
-# 🏠 ГЛАВНАЯ СТРАНИЦА
+# главная страница
 @app.route("/")
 def home():
     return send_from_directory("static", "index.html")
 
-
-# (опционально) если есть файлы типа js/css
+# статика (js, css, картинки)
 @app.route("/<path:path>")
 def static_files(path):
     return send_from_directory("static", path)
