@@ -18,19 +18,18 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# ================= HOME (FRONTEND) =================
+# ================= FRONTEND =================
 @app.route("/")
 def home():
     return send_from_directory(".", "index.html")
 
-# ================= GET USER =================
+# ================= USER =================
 @app.route("/user/<uid>")
 def user(uid):
     cur.execute("SELECT * FROM users WHERE id=?", (uid,))
     row = cur.fetchone()
 
     if not row:
-        # создаём нового игрока
         row = (uid, "unknown", 0, 1)
         cur.execute("INSERT INTO users VALUES (?, ?, ?, ?)", row)
         conn.commit()
@@ -42,7 +41,7 @@ def user(uid):
         "power": row[3]
     })
 
-# ================= SAVE USER =================
+# ================= SAVE =================
 @app.route("/save", methods=["POST"])
 def save():
     data = request.json
