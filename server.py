@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# ================= FRONTEND =================
+# ================= FRONT =================
 @app.route("/")
 def home():
     return send_from_directory(".", "index.html")
@@ -46,34 +46,30 @@ def user(uid):
 def save():
     data = request.json
 
-    user_id = str(data["id"])
-    name = data["name"]
-    coins = int(data["coins"])
-    power = int(data["power"])
-
     cur.execute("""
         INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?)
-    """, (user_id, name, coins, power))
+    """, (
+        str(data["id"]),
+        data["name"],
+        int(data["coins"]),
+        int(data["power"])
+    ))
 
     conn.commit()
-
     return jsonify({"ok": True})
 
 # ================= LEADERBOARD =================
 @app.route("/leaderboard")
 def leaderboard():
     cur.execute("""
-        SELECT name, coins
-        FROM users
+        SELECT name, coins FROM users
         ORDER BY coins DESC
         LIMIT 10
     """)
 
-    data = cur.fetchall()
-
     return jsonify([
-        {"name": x[0], "coins": x[1]}
-        for x in data
+        {"name": n, "coins": c}
+        for n, c in cur.fetchall()
     ])
 
 # ================= RUN =================
