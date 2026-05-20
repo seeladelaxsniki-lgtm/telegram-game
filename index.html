@@ -17,15 +17,41 @@ body {
 header {
   text-align:center;
   padding:10px;
-  background:#111;
-}
-
-#coins {
   color:#f7931a;
-  font-size:22px;
+  font-weight:bold;
 }
 
-/* NAV */
+.energy {
+  text-align:center;
+  margin-bottom:10px;
+  color:#0f0;
+}
+
+.btc {
+  font-size:180px;
+  text-align:center;
+  margin-top:60px;
+  cursor:pointer;
+  animation: float 3s infinite;
+}
+
+@keyframes float {
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-10px)}
+  100%{transform:translateY(0)}
+}
+
+.plus {
+  position:absolute;
+  color:#f7931a;
+  animation: fade 1s forwards;
+}
+
+@keyframes fade {
+  0%{opacity:1;transform:translateY(0)}
+  100%{opacity:0;transform:translateY(-50px)}
+}
+
 .nav {
   position:fixed;
   bottom:0;
@@ -37,8 +63,8 @@ header {
 .nav button {
   flex:1;
   padding:15px;
-  border:none;
   background:#111;
+  border:none;
   color:white;
 }
 
@@ -47,164 +73,132 @@ header {
   color:black;
 }
 
-/* SCREENS */
-.screen {
-  display:none;
-  text-align:center;
-  height:calc(100vh - 120px);
-}
+.screen { display:none; }
+.screen.active { display:block; }
 
-.screen.active {
-  display:block;
-}
+.shop { padding:10px; }
 
-/* BTC */
-.btc {
-  font-size:160px;
-  margin-top:70px;
-  cursor:pointer;
-  animation:float 3s infinite;
-}
-
-@keyframes float {
-  0%{transform:translateY(0)}
-  50%{transform:translateY(-10px)}
-  100%{transform:translateY(0)}
-}
-
-/* SHOP */
-.btn {
-  padding:12px;
-  margin:8px;
-  border:none;
+.item {
+  margin:10px;
+  padding:10px;
+  background:#111;
   border-radius:10px;
 }
 
-.buy { background:#f7931a; color:black; }
+button.buy {
+  width:100%;
+  padding:10px;
+  margin-top:5px;
+  background:#f7931a;
+  border:none;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-  <div id="coins">₿ 0</div>
+₿ <span id="coins">0</span>
 </header>
 
-<!-- HOME -->
+<div class="energy">⚡ Energy: <span id="energy">0</span></div>
+
 <div id="home" class="screen active">
-  <div class="btc" onclick="tap()">₿</div>
+  <div class="btc" onclick="tap(event)">₿</div>
 </div>
 
-<!-- SHOP -->
-<div id="shop" class="screen">
-  <button class="btn buy" onclick="buy1()">+1 Power (150₿)</button>
-  <button class="btn buy" onclick="buy2()">+2 Power (400₿)</button>
+<div id="shop" class="screen shop">
+  <div class="item">
+    +1 Power
+    <button class="buy" onclick="buy('p1')">150₿</button>
+  </div>
+
+  <div class="item">
+    +2 Power
+    <button class="buy" onclick="buy('p2')">400₿</button>
+  </div>
 </div>
 
-<!-- LEADERBOARD -->
-<div id="lb" class="screen">
-  <h3>🏆 Top</h3>
+<div id="top" class="screen">
   <div id="list"></div>
 </div>
 
-<!-- NAV -->
 <div class="nav">
   <button class="active" onclick="show('home',this)">Home</button>
   <button onclick="show('shop',this)">Shop</button>
-  <button onclick="show('lb',this);loadLB()">Top</button>
+  <button onclick="show('top',this);loadTop()">Top</button>
 </div>
 
 <script>
 
-let user=null;
-let userId=null;
+let user;
+let id;
 
-/* INIT TELEGRAM */
 async function init(){
 
-  if(window.Telegram && Telegram.WebApp){
-
+  if(window.Telegram){
     Telegram.WebApp.ready();
+    id = Telegram.WebApp.initDataUnsafe.user.id;
 
-    let tg = Telegram.WebApp.initDataUnsafe.user;
-
-    let r = await fetch("/tg_auth",{
+    await fetch("/tg_auth",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        id: tg.id,
-        first_name: tg.first_name
-      })
+      body:JSON.stringify({id})
     });
 
-    let data = await r.json();
-    userId = data.id;
-
-  } else {
-    userId="1";
-  }
+  } else id="1";
 
   load();
 }
 
-/* LOAD */
 async function load(){
-  let r = await fetch(`/user/${userId}`);
+  let r = await fetch("/user/"+id);
   user = await r.json();
 
-  document.getElementById("coins").innerText = "₿ " + user.coins;
+  document.getElementById("coins").innerText = user.coins;
+  document.getElementById("energy").innerText = user.energy;
 }
 
-/* TAP */
-async function tap(){
-  user.coins += user.power;
-  await save();
-  load();
-}
+async function tap(e){
 
-/* SAVE */
-async function save(){
-  await fetch("/save",{
+  let r = await fetch("/tap",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(user)
+    body:JSON.stringify({id})
   });
+
+  let d = await r.json();
+
+  load();
+
+  let el = document.createElement("div");
+  el.className="plus";
+  el.innerText = "+" + d.crit;
+  el.style.left = e.clientX+"px";
+  el.style.top = e.clientY+"px";
+  document.body.appendChild(el);
+
+  setTimeout(()=>el.remove(),1000);
 }
 
-/* SHOP */
-async function buy1(){
-  if(user.coins < 150) return;
-  user.coins -= 150;
-  user.power += 1;
-  await save();
+async function buy(item){
+  await fetch("/buy",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id, item})
+  });
+
   load();
 }
 
-async function buy2(){
-  if(user.coins < 400) return;
-  user.coins -= 400;
-  user.power += 2;
-  await save();
-  load();
-}
-
-/* LEADERBOARD */
-async function loadLB(){
+async function loadTop(){
   let r = await fetch("/leaderboard");
-  let data = await r.json();
+  let d = await r.json();
 
-  let html = "";
-
-  data.forEach((u,i)=>{
-    html += `
-      <div>#${i+1} ${u.name} - ${u.coins}</div>
-    `;
-  });
-
-  document.getElementById("list").innerHTML = html;
+  document.getElementById("list").innerHTML =
+    d.map((x,i)=>`#${i+1} ${x.name} - ${x.coins}`).join("<br>");
 }
 
-/* NAV */
 function show(id,btn){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
