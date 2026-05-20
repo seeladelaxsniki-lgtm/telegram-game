@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import sqlite3
 import os
 
@@ -18,10 +18,10 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# ================= HOME =================
+# ================= FRONTEND (ВМЕСТО ТЕКСТА) =================
 @app.route("/")
 def home():
-    return "BTC Clicker is running"
+    return send_from_directory(".", "index.html")
 
 # ================= TELEGRAM AUTH =================
 @app.route("/tg_auth", methods=["POST"])
@@ -50,9 +50,12 @@ def user(uid):
     row = cur.fetchone()
 
     if not row:
-        cur.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (uid, "unknown", 0, 1))
-        conn.commit()
-        row = (uid, "unknown", 0, 1)
+        return jsonify({
+            "id": uid,
+            "name": "unknown",
+            "coins": 0,
+            "power": 1
+        })
 
     return jsonify({
         "id": row[0],
