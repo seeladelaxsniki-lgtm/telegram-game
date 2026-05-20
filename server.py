@@ -7,11 +7,10 @@ app = Flask(__name__)
 def home():
     return send_from_directory("static", "index.html")
 
-# статика (js, css, картинки)
+# статика (css/js если будут)
 @app.route("/<path:path>")
 def static_files(path):
     return send_from_directory("static", path)
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
