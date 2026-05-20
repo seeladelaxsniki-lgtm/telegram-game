@@ -2,65 +2,48 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Telegram Game</title>
+    <title>BTC Clicker</title>
     <style>
         body {
-            margin: 0;
-            font-family: Arial, sans-serif;
             background: #0f172a;
             color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-        }
-
-        .card {
-            background: #1e293b;
-            padding: 30px;
-            border-radius: 20px;
+            font-family: Arial;
             text-align: center;
-            width: 300px;
+            margin-top: 100px;
         }
 
         button {
             padding: 15px 25px;
-            font-size: 18px;
+            font-size: 20px;
             border: none;
-            border-radius: 12px;
-            cursor: pointer;
+            border-radius: 10px;
             background: #22c55e;
             color: white;
-            margin-top: 20px;
-        }
-
-        button:active {
-            transform: scale(0.95);
+            cursor: pointer;
         }
 
         .score {
-            font-size: 32px;
-            margin: 10px 0;
+            font-size: 40px;
+            margin: 20px;
         }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h1>🎮 Click Game</h1>
-    <div class="score" id="score">0</div>
-    <button onclick="clickMe()">+1 монета</button>
-</div>
+<h1>🚀 BTC Clicker</h1>
+
+<div class="score" id="score">0</div>
+
+<button onclick="clicker()">+1 BTC</button>
 
 <script>
-    let score = localStorage.getItem("score") || 0;
+    let score = localStorage.getItem("btc") || 0;
     document.getElementById("score").innerText = score;
 
-    function clickMe() {
+    function clicker() {
         score++;
         document.getElementById("score").innerText = score;
-        localStorage.setItem("score", score);
+        localStorage.setItem("btc", score);
     }
 </script>
 
