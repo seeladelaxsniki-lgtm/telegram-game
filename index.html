@@ -2,7 +2,9 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>BTC Clicker App</title>
+<title>BTC Clicker</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
 body {
@@ -12,7 +14,6 @@ body {
   color:white;
 }
 
-/* TOP */
 header {
   text-align:center;
   padding:10px;
@@ -20,8 +21,8 @@ header {
 }
 
 #coins {
-  font-size:22px;
   color:#f7931a;
+  font-size:22px;
 }
 
 /* NAV */
@@ -49,81 +50,54 @@ header {
 /* SCREENS */
 .screen {
   display:none;
-  height:calc(100vh - 120px);
   text-align:center;
-  animation:fade 0.3s ease;
+  height:calc(100vh - 120px);
 }
 
 .screen.active {
   display:block;
 }
 
-@keyframes fade {
-  from {opacity:0; transform:translateY(10px);}
-  to {opacity:1; transform:translateY(0);}
-}
-
 /* BITCOIN */
 .btc {
-  font-size:170px;
+  font-size:160px;
   margin-top:70px;
   cursor:pointer;
-  animation:float 3s infinite ease-in-out;
-  filter: drop-shadow(0 0 20px #f7931a);
+  animation:float 3s infinite;
 }
 
 @keyframes float {
   0%{transform:translateY(0)}
-  50%{transform:translateY(-12px)}
+  50%{transform:translateY(-10px)}
   100%{transform:translateY(0)}
-}
-
-/* STATS */
-.stat {
-  color:#aaa;
-  margin-top:10px;
 }
 
 /* SHOP */
 .btn {
-  padding:12px 18px;
+  padding:12px;
   margin:8px;
   border:none;
   border-radius:10px;
   cursor:pointer;
-  font-weight:bold;
+}
+
+.buy {
+  background:#f7931a;
+  color:black;
 }
 
 .locked {
   background:#333;
   color:#777;
-  opacity:0.5;
 }
 
-.available {
-  background:#ff3b30;
-  color:white;
-  animation:pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0%{transform:scale(1)}
-  50%{transform:scale(1.05)}
-  100%{transform:scale(1)}
-}
-
-/* LEADERBOARD */
-.lb {
-  margin-top:20px;
-}
-
+/* LB */
 .item {
   display:flex;
   justify-content:space-between;
   padding:10px;
   background:#111;
   margin:5px;
-  border-radius:8px;
 }
 </style>
 </head>
@@ -132,27 +106,22 @@ header {
 
 <header>
   <div id="coins">₿ 0</div>
-  <div class="stat" id="stamina">⚡</div>
 </header>
 
 <!-- HOME -->
 <div id="home" class="screen active">
-  <div class="btc" onclick="tap(event)">₿</div>
-  <div class="stat" id="power">Power: 1</div>
+  <div class="btc" onclick="tap()">₿</div>
 </div>
 
 <!-- SHOP -->
 <div id="shop" class="screen">
-  <h3>🛒 Shop</h3>
-
-  <button id="up1" class="btn" onclick="buy1()">+1 Power (150₿)</button>
-  <button id="up2" class="btn" onclick="buy2()">+2 Power (400₿)</button>
-  <button id="st1" class="btn" onclick="buyStam()">+10 Stamina (300₿)</button>
+  <button id="up1" class="btn buy" onclick="buy1()">+1 Power (150₿)</button>
+  <button id="up2" class="btn buy" onclick="buy2()">+2 Power (400₿)</button>
 </div>
 
 <!-- LEADERBOARD -->
 <div id="lb" class="screen">
-  <h3>🏆 Leaderboard</h3>
+  <h3>🏆 Top</h3>
   <div id="list"></div>
 </div>
 
@@ -165,11 +134,36 @@ header {
 
 <script>
 
-let userId="1";
 let user=null;
+let userId=null;
 
-let stamina=20;
-let maxStamina=20;
+/* TELEGRAM INIT */
+async function init(){
+
+  if(window.Telegram && Telegram.WebApp){
+
+    Telegram.WebApp.ready();
+
+    let tg = Telegram.WebApp.initDataUnsafe.user;
+
+    let r = await fetch("/tg_auth",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        id: tg.id,
+        first_name: tg.first_name
+      })
+    });
+
+    let data = await r.json();
+    userId = data.id;
+
+  } else {
+    userId="1";
+  }
+
+  load();
+}
 
 /* LOAD */
 async function load(){
@@ -179,29 +173,14 @@ async function load(){
   if(!user.power) user.power=1;
 
   document.getElementById("coins").innerText="₿ "+user.coins;
-  document.getElementById("power").innerText="Power: "+user.power;
 }
 
-/* TAP + CRIT */
+/* TAP */
 async function tap(){
-  if(stamina<=0) return;
-
-  stamina--;
-
-  let crit = Math.random() < 0.1 ? 5 : (Math.random() < 0.3 ? 2 : 1);
-  let gain = user.power * crit;
-
-  user.coins += gain;
-
-  document.getElementById("coins").innerText="₿ "+user.coins;
-
-  setTimeout(()=>{
-    if(stamina<maxStamina) stamina++;
-    update();
-  },800);
+  user.coins += user.power;
 
   await save();
-  update();
+  load();
 }
 
 /* SAVE */
@@ -213,50 +192,24 @@ async function save(){
   });
 }
 
-/* STAMINA UI */
-function update(){
-  document.getElementById("stamina").innerText="⚡ "+stamina+"/"+maxStamina;
-  document.getElementById("power").innerText="Power: "+user.power;
-  updateShop();
-}
-
-/* SHOP UI */
-function updateShop(){
-
-  document.getElementById("up1").className =
-    user.coins>=150 ? "btn available" : "btn locked";
-
-  document.getElementById("up2").className =
-    user.coins>=400 ? "btn available" : "btn locked";
-
-  document.getElementById("st1").className =
-    user.coins>=300 ? "btn available" : "btn locked";
-}
-
 /* SHOP */
 async function buy1(){
   if(user.coins<150) return;
   user.coins-=150;
   user.power+=1;
-  await save(); load();
+  await save();
+  load();
 }
 
 async function buy2(){
   if(user.coins<400) return;
   user.coins-=400;
   user.power+=2;
-  await save(); load();
+  await save();
+  load();
 }
 
-async function buyStam(){
-  if(user.coins<300) return;
-  user.coins-=300;
-  maxStamina+=10;
-  stamina=maxStamina;
-  await save(); load();
-}
-
-/* LEADERBOARD */
+/* LB */
 async function loadLB(){
   let r=await fetch("/leaderboard");
   let data=await r.json();
@@ -268,7 +221,7 @@ async function loadLB(){
       <div class="item">
         <div>#${i+1}</div>
         <div>${u.name}</div>
-        <div>${u.coins} ₿</div>
+        <div>${u.coins}</div>
       </div>
     `;
   });
@@ -285,7 +238,7 @@ function show(id,btn){
   btn.classList.add("active");
 }
 
-load();
+init();
 
 </script>
 
