@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import sqlite3
+import os
 
 app = Flask(__name__)
 
@@ -16,6 +17,11 @@ CREATE TABLE IF NOT EXISTS users (
 )
 """)
 conn.commit()
+
+# ================= HOME =================
+@app.route("/")
+def home():
+    return "🚀 Server is running!"
 
 # ================= SAVE USER =================
 @app.route("/save", methods=["POST"])
@@ -73,6 +79,7 @@ def leaderboard():
         for x in data
     ])
 
-# ================= RUN =================
+# ================= RUN SERVER =================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
