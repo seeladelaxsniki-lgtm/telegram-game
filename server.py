@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 import sqlite3
 import os
 
 app = Flask(__name__)
 
+# ================= DB =================
 conn = sqlite3.connect("game.db", check_same_thread=False)
 cur = conn.cursor()
 
@@ -18,30 +19,12 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-MAX_ENERGY = 100
-
+# ================= HOME =================
 @app.route("/")
 def home():
-    return send_from_directory(".", "index.html")
+    return "🚀 BTC Clicker Server Running"
 
-@app.route("/tg_auth", methods=["POST"])
-def tg_auth():
-    data = request.json
-    uid = str(data["id"])
-    name = data.get("first_name", "player")
-
-    cur.execute("SELECT * FROM users WHERE id=?", (uid,))
-    row = cur.fetchone()
-
-    if not row:
-        cur.execute(
-            "INSERT INTO users VALUES (?, ?, ?, ?, ?)",
-            (uid, name, 0, 1, MAX_ENERGY)
-        )
-        conn.commit()
-
-    return jsonify({"ok": True, "id": uid})
-
+# ================= GET USER =================
 @app.route("/user/<uid>")
 def user(uid):
     cur.execute("SELECT * FROM users WHERE id=?", (uid,))
@@ -53,7 +36,7 @@ def user(uid):
             "name": "unknown",
             "coins": 0,
             "power": 1,
-            "energy": MAX_ENERGY
+            "energy": 100
         })
 
     return jsonify({
@@ -64,6 +47,26 @@ def user(uid):
         "energy": row[4]
     })
 
+# ================= SAVE =================
+@app.route("/save", methods=["POST"])
+def save():
+    data = request.json
+
+    user_id = str(data["id"])
+    name = data.get("name", "unknown")
+    coins = int(data.get("coins", 0))
+    power = int(data.get("power", 1))
+    energy = int(data.get("energy", 100))
+
+    cur.execute("""
+    INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?, ?)
+    """, (user_id, name, coins, power, energy))
+
+    conn.commit()
+
+    return jsonify({"ok": True})
+
+# ================= TAP SYSTEM =================
 @app.route("/tap", methods=["POST"])
 def tap():
     data = request.json
@@ -73,33 +76,35 @@ def tap():
     row = cur.fetchone()
 
     if not row:
-        return jsonify({"error": "no user"})
+        coins, power, energy = 0, 1, 100
+    else:
+        coins, power, energy = row
 
-    coins, power, energy = row
-
+    # ❌ нет энергии → нельзя тапать
     if energy <= 0:
-        return jsonify({"ok": False, "reason": "no energy"})
+        return jsonify({"ok": False, "msg": "no energy", "crit": 0})
 
-    import random
-    crit = 2 if random.random() < 0.1 else 1
+    gain = power
 
-    coins += power * crit
+    coins += gain
     energy -= 1
 
     cur.execute("""
         UPDATE users
-        SET coins=?, energy=?
+        SET coins=?, power=power, energy=?
         WHERE id=?
     """, (coins, energy, uid))
 
     conn.commit()
 
     return jsonify({
+        "ok": True,
+        "crit": gain,
         "coins": coins,
-        "energy": energy,
-        "crit": crit
+        "energy": energy
     })
 
+# ================= SHOP =================
 @app.route("/buy", methods=["POST"])
 def buy():
     data = request.json
@@ -107,41 +112,53 @@ def buy():
     item = data["item"]
 
     cur.execute("SELECT coins, power, energy FROM users WHERE id=?", (uid,))
-    coins, power, energy = cur.fetchone()
+    row = cur.fetchone()
 
-    if item == "p1":
-        cost = 150
-        if coins >= cost:
-            coins -= cost
-            power += 1
+    if not row:
+        return jsonify({"ok": False})
 
-    if item == "p2":
-        cost = 400
-        if coins >= cost:
-            coins -= cost
-            power += 2
+    coins, power, energy = row
+
+    if item == "p1" and coins >= 150:
+        coins -= 150
+        power += 1
+
+    elif item == "p2" and coins >= 400:
+        coins -= 400
+        power += 2
+
+    elif item == "energy" and coins >= 300:
+        coins -= 300
+        energy += 50
 
     cur.execute("""
-        UPDATE users SET coins=?, power=?, energy=? WHERE id=?
+        UPDATE users
+        SET coins=?, power=?, energy=?
+        WHERE id=?
     """, (coins, power, energy, uid))
 
     conn.commit()
 
-    return jsonify({"coins": coins, "power": power})
+    return jsonify({"ok": True})
 
+# ================= LEADERBOARD =================
 @app.route("/leaderboard")
 def leaderboard():
     cur.execute("""
-        SELECT name, coins FROM users
+        SELECT name, coins
+        FROM users
         ORDER BY coins DESC
         LIMIT 10
     """)
 
+    data = cur.fetchall()
+
     return jsonify([
-        {"name": n, "coins": c}
-        for n, c in cur.fetchall()
+        {"name": x[0], "coins": x[1]}
+        for x in data
     ])
 
+# ================= RUN =================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
