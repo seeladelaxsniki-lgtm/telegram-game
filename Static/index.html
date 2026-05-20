@@ -1,10 +1,68 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>BTC Clicker</title>
+    <meta charset="UTF-8">
+    <title>Telegram Game</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            width: 300px;
+        }
+
+        button {
+            padding: 15px 25px;
+            font-size: 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            background: #22c55e;
+            color: white;
+            margin-top: 20px;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .score {
+            font-size: 32px;
+            margin: 10px 0;
+        }
+    </style>
 </head>
-<body style="background:#111;color:white;text-align:center;">
-    <h1>🚀 Игра работает</h1>
-    <button onclick="alert('click')">Клик</button>
+<body>
+
+<div class="card">
+    <h1>🎮 Click Game</h1>
+    <div class="score" id="score">0</div>
+    <button onclick="clickMe()">+1 монета</button>
+</div>
+
+<script>
+    let score = localStorage.getItem("score") || 0;
+    document.getElementById("score").innerText = score;
+
+    function clickMe() {
+        score++;
+        document.getElementById("score").innerText = score;
+        localStorage.setItem("score", score);
+    }
+</script>
+
 </body>
 </html>
