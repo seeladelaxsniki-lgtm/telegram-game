@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Tap Game</title>
+
+  <style>
+    body {
+      background: #111;
+      color: white;
+      text-align: center;
+      font-family: Arial;
+      padding-top: 100px;
+    }
+
+    h1 {
+      font-size: 40px;
+    }
+
+    #coins {
+      font-size: 30px;
+      margin: 20px;
+    }
+
+    button {
+      font-size: 30px;
+      padding: 20px 40px;
+      border-radius: 20px;
+      border: none;
+      background: gold;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🪙 Tap Game</h1>
+
+  <div id="coins">Coins: 0</div>
+
+  <button onclick="tap()">TAP +1</button>
+
+  <script>
+    let userId = "1";
+    let user = null;
+
+    async function load() {
+      let res = await fetch(`/user/${userId}`);
+      user = await res.json();
+
+      document.getElementById("coins").innerText =
+        "Coins: " + user.coins;
+    }
+
+    async function tap() {
+      user.coins += 1;
+
+      await fetch("/save", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(user)
+      });
+
+      document.getElementById("coins").innerText =
+        "Coins: " + user.coins;
+    }
+
+    load();
+  </script>
+
+</body>
+</html>
