@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import sqlite3
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 
 # ================= DB =================
 conn = sqlite3.connect("game.db", check_same_thread=False)
@@ -19,12 +19,12 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# ================= HOME =================
+# ================= FRONTEND =================
 @app.route("/")
-def home():
-    return "🚀 BTC Clicker Server Running"
+def index():
+    return send_from_directory("static", "index.html")
 
-# ================= GET USER =================
+# ================= USER =================
 @app.route("/user/<uid>")
 def user(uid):
     cur.execute("SELECT * FROM users WHERE id=?", (uid,))
@@ -47,30 +47,10 @@ def user(uid):
         "energy": row[4]
     })
 
-# ================= SAVE =================
-@app.route("/save", methods=["POST"])
-def save():
-    data = request.json
-
-    user_id = str(data["id"])
-    name = data.get("name", "unknown")
-    coins = int(data.get("coins", 0))
-    power = int(data.get("power", 1))
-    energy = int(data.get("energy", 100))
-
-    cur.execute("""
-    INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?, ?)
-    """, (user_id, name, coins, power, energy))
-
-    conn.commit()
-
-    return jsonify({"ok": True})
-
-# ================= TAP SYSTEM =================
+# ================= TAP =================
 @app.route("/tap", methods=["POST"])
 def tap():
-    data = request.json
-    uid = str(data["id"])
+    uid = request.json["id"]
 
     cur.execute("SELECT coins, power, energy FROM users WHERE id=?", (uid,))
     row = cur.fetchone()
@@ -80,36 +60,25 @@ def tap():
     else:
         coins, power, energy = row
 
-    # ❌ нет энергии → нельзя тапать
     if energy <= 0:
-        return jsonify({"ok": False, "msg": "no energy", "crit": 0})
+        return jsonify({"ok": False, "crit": 0})
 
-    gain = power
-
-    coins += gain
+    coins += power
     energy -= 1
 
     cur.execute("""
-        UPDATE users
-        SET coins=?, power=power, energy=?
-        WHERE id=?
-    """, (coins, energy, uid))
+        INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?, ?)
+    """, (uid, "player", coins, power, energy))
 
     conn.commit()
 
-    return jsonify({
-        "ok": True,
-        "crit": gain,
-        "coins": coins,
-        "energy": energy
-    })
+    return jsonify({"ok": True, "crit": power})
 
 # ================= SHOP =================
 @app.route("/buy", methods=["POST"])
 def buy():
-    data = request.json
-    uid = str(data["id"])
-    item = data["item"]
+    uid = request.json["id"]
+    item = request.json["item"]
 
     cur.execute("SELECT coins, power, energy FROM users WHERE id=?", (uid,))
     row = cur.fetchone()
@@ -123,19 +92,17 @@ def buy():
         coins -= 150
         power += 1
 
-    elif item == "p2" and coins >= 400:
+    if item == "p2" and coins >= 400:
         coins -= 400
         power += 2
 
-    elif item == "energy" and coins >= 300:
+    if item == "energy" and coins >= 300:
         coins -= 300
         energy += 50
 
     cur.execute("""
-        UPDATE users
-        SET coins=?, power=?, energy=?
-        WHERE id=?
-    """, (coins, power, energy, uid))
+        INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?, ?)
+    """, (uid, "player", coins, power, energy))
 
     conn.commit()
 
@@ -145,17 +112,13 @@ def buy():
 @app.route("/leaderboard")
 def leaderboard():
     cur.execute("""
-        SELECT name, coins
-        FROM users
-        ORDER BY coins DESC
-        LIMIT 10
+        SELECT name, coins FROM users ORDER BY coins DESC LIMIT 10
     """)
 
     data = cur.fetchall()
 
     return jsonify([
-        {"name": x[0], "coins": x[1]}
-        for x in data
+        {"name": x[0], "coins": x[1]} for x in data
     ])
 
 # ================= RUN =================
