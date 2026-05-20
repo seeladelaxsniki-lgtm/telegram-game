@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# ================= FRONT =================
+# ================= FRONTEND =================
 @app.route("/")
 def home():
     return send_from_directory("static", "index.html")
