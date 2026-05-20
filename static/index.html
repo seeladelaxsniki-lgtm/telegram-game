@@ -1,10 +1,293 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Game</title>
+<meta charset="UTF-8">
+<title>BTC Clicker PRO</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+* {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body {
+    margin: 0;
+    font-family: Arial;
+    color: white;
+    overflow: hidden;
+}
+
+/* ===== BACKGROUND ===== */
+.bg {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    transition: 0.6s;
+}
+
+.green { background: radial-gradient(circle at top, #00ff88, #00150a); }
+.purple { background: radial-gradient(circle at top, #8b5cf6, #0b0015); }
+.space { background: radial-gradient(circle at top, #0f172a, #000); }
+
+/* ===== LAYOUT ===== */
+.page { display: none; }
+.active { display: block; }
+
+.container {
+    text-align: center;
+    margin-top: 50px;
+}
+
+/* ===== COIN ===== */
+.coin {
+    width: 170px;
+    height: 170px;
+    margin: 30px auto;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    cursor: pointer;
+    transition: 0.1s;
+
+    background: radial-gradient(circle at 30% 30%, #ffd700, #b45309);
+    box-shadow: 0 0 25px #facc15;
+}
+
+.coin:active {
+    transform: scale(0.92);
+}
+
+/* ===== BUTTONS ===== */
+button {
+    margin: 5px;
+    padding: 10px;
+    border-radius: 10px;
+    background: #111827;
+    color: white;
+    border: 1px solid #2a2a2a;
+}
+
+/* ===== MENU ===== */
+.menu {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    background: #0f172a;
+}
+
+.menu button {
+    flex: 1;
+    border: none;
+    padding: 12px;
+    background: #0f172a;
+    color: white;
+}
+
+/* ===== POP ===== */
+.pop {
+    position: absolute;
+    color: gold;
+    animation: up 0.5s ease-out;
+    pointer-events: none;
+}
+
+@keyframes up {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(-60px); opacity: 0; }
+}
+
+</style>
 </head>
-<body style="background:#111;color:white;text-align:center;margin-top:100px;">
-    <h1>🚀 GAME IS WORKING</h1>
+
+<body>
+
+<div id="bg" class="bg space"></div>
+
+<!-- HOME -->
+<div id="home" class="page active">
+<div class="container">
+
+<h2>🏠 BTC Clicker PRO</h2>
+
+<div>🪙 Coins: <span id="coins">0</span></div>
+<div>⚡ Energy: <span id="energy">100</span> / <span id="maxEnergy">100</span></div>
+
+<div class="coin" onclick="tap()">₿</div>
+
+<div id="info">Level 1</div>
+
+<button onclick="buyClick()">💥 Upgrade Click</button>
+<button onclick="buyEnergy()">⚡ +25 Energy</button>
+<button onclick="buyRegen()">🔋 Regen Boost</button>
+
+</div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="leaderboard" class="page">
+<h2 style="text-align:center;">🏆 Leaderboard</h2>
+<p style="text-align:center;">(готово под backend позже)</p>
+</div>
+
+<!-- PROFILE -->
+<div id="profile" class="page">
+<h2 style="text-align:center;">👤 Profile</h2>
+
+<div style="text-align:center;">
+<p id="name">Player</p>
+<p id="id">ID: 0</p>
+
+<h3>🎨 Theme</h3>
+<button onclick="setBg('green')">🟢 Green</button>
+<button onclick="setBg('purple')">🟣 Purple</button>
+<button onclick="setBg('space')">🌌 Space</button>
+</div>
+</div>
+
+<!-- MENU -->
+<div class="menu">
+<button onclick="openPage('home')">Home</button>
+<button onclick="openPage('leaderboard')">Top</button>
+<button onclick="openPage('profile')">Profile</button>
+</div>
+
+<script>
+let tg = window.Telegram.WebApp;
+tg.expand();
+
+/* ===== USER ===== */
+let user = tg.initDataUnsafe.user || {};
+document.getElementById("name").innerText = user.first_name || "Player";
+document.getElementById("id").innerText = "ID: " + (user.id || 0);
+
+/* ===== GAME STATE ===== */
+let coins = 0;
+
+let energy = 100;
+let maxEnergy = 100;
+
+let power = 1;
+
+/* LEVEL SYSTEM */
+let level = 1;
+let progress = 0;
+let need = 50;
+
+/* UPGRADE SYSTEM */
+let clickLevel = 0;
+let regenLevel = 0;
+
+/* ===== ENERGY REGEN ===== */
+setInterval(() => {
+    if (energy < maxEnergy) {
+        energy++;
+        update();
+    }
+}, 900);
+
+/* ===== TAP ===== */
+function tap() {
+    if (energy <= 0) return;
+
+    coins += power;
+    energy--;
+
+    progress++;
+
+    if (progress >= need) {
+        level++;
+        progress = 0;
+
+        power += 1;
+        need = Math.floor(need * 1.35);
+    }
+
+    update();
+    updateCoin();
+
+    let pop = document.createElement("div");
+    pop.className = "pop";
+    pop.innerText = "+" + power;
+    pop.style.left = "50%";
+    pop.style.top = "40%";
+    document.body.appendChild(pop);
+
+    setTimeout(() => pop.remove(), 500);
+}
+
+/* ===== CLICK UPGRADE (FIXED) ===== */
+function buyClick() {
+    let price = Math.floor(100 * Math.pow(3, clickLevel));
+
+    if (coins >= price) {
+        coins -= price;
+        clickLevel++;
+        power = 1 + clickLevel * 2;
+    }
+}
+
+/* ===== ENERGY UPGRADE ===== */
+function buyEnergy() {
+    if (coins >= 250) {
+        coins -= 250;
+        maxEnergy += 25;
+        energy = maxEnergy;
+    }
+}
+
+/* ===== REGEN UPGRADE ===== */
+function buyRegen() {
+    let price = 200 + regenLevel * 300;
+
+    if (coins >= price) {
+        coins -= price;
+        regenLevel++;
+        maxEnergy += 10;
+    }
+}
+
+/* ===== COIN VISUAL ===== */
+function updateCoin() {
+    let c = document.querySelector(".coin");
+
+    if (level < 3) {
+        c.style.background = "gold";
+    } else if (level < 6) {
+        c.style.background = "linear-gradient(45deg,#00ff88,#00bfff)";
+    } else {
+        c.style.background = "linear-gradient(45deg,#8b5cf6,#facc15)";
+    }
+}
+
+/* ===== BACKGROUND ===== */
+function setBg(t) {
+    document.getElementById("bg").className = "bg " + t;
+}
+
+/* ===== UI ===== */
+function update() {
+    document.getElementById("coins").innerText = coins;
+    document.getElementById("energy").innerText = energy;
+    document.getElementById("maxEnergy").innerText = maxEnergy;
+
+    document.getElementById("info").innerText =
+        `Level ${level} | +${power} per tap`;
+}
+
+/* ===== NAV ===== */
+function openPage(p) {
+    document.querySelectorAll(".page").forEach(x => x.classList.remove("active"));
+    document.getElementById(p).classList.add("active");
+}
+
+update();
+updateCoin();
+</script>
+
 </body>
 </html>
