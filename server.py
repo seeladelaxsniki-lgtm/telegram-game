@@ -1,61 +1,64 @@
 from flask import Flask, request, jsonify, send_from_directory
+import json
 import os
 
 app = Flask(__name__)
 
-# ===== SIMPLE DB IN MEMORY =====
-users = {}
+FILE = "users.json"
 
-# ===== FRONTEND =====
+# ===== LOAD DATA =====
+def load():
+    if os.path.exists(FILE):
+        return json.load(open(FILE, "r"))
+    return {}
+
+def save(data):
+    json.dump(data, open(FILE, "w"))
+
+users = load()
+
+# ===== WEB =====
 @app.route("/")
 def home():
     return send_from_directory("static", "index.html")
 
 # ===== SAVE PLAYER =====
 @app.route("/api/save", methods=["POST"])
-def save():
+def save_player():
+    global users
+
     data = request.json
-    uid = str(data.get("id"))
+    uid = str(data["id"])
 
     users[uid] = {
-        "name": data.get("name", "player"),
+        "name": data.get("name"),
         "coins": data.get("coins", 0),
         "level": data.get("level", 1),
         "power": data.get("power", 1)
     }
 
-    return jsonify({"ok": True})
+    save(users)
+    return {"ok": True}
 
-# ===== GET PLAYER =====
+# ===== GET USER =====
 @app.route("/api/user/<uid>")
 def get_user(uid):
-    return jsonify(users.get(uid, {
-        "name": "unknown",
-        "coins": 0,
-        "level": 1,
-        "power": 1
-    }))
+    return jsonify(users.get(uid, {}))
 
 # ===== LEADERBOARD =====
 @app.route("/api/top")
 def top():
-    sorted_users = sorted(
-        users.items(),
-        key=lambda x: x[1]["coins"],
-        reverse=True
-    )
+    sorted_users = sorted(users.items(), key=lambda x: x[1]["coins"], reverse=True)
 
-    result = [
+    return jsonify([
         {
             "id": uid,
-            "name": data["name"],
-            "coins": data["coins"],
-            "level": data["level"]
+            "name": u["name"],
+            "coins": u["coins"],
+            "level": u["level"]
         }
-        for uid, data in sorted_users[:10]
-    ]
-
-    return jsonify(result)
+        for uid, u in sorted_users[:10]
+    ])
 
 # ===== RUN =====
 if __name__ == "__main__":
