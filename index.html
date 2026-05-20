@@ -13,9 +13,7 @@
       padding-top: 100px;
     }
 
-    h1 {
-      font-size: 40px;
-    }
+    h1 { font-size: 40px; }
 
     #coins {
       font-size: 30px;
@@ -46,11 +44,10 @@
   <button onclick="tap()">TAP +1</button>
 
   <script>
-    let userId = "1";
     let user = null;
 
     async function load() {
-      let res = await fetch(`/user/${userId}`);
+      let res = await fetch("/user/1");
       user = await res.json();
 
       document.getElementById("coins").innerText =
@@ -58,7 +55,7 @@
     }
 
     async function tap() {
-      user.coins += 1;
+      user.coins += user.power;
 
       await fetch("/save", {
         method: "POST",
