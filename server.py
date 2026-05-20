@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 import sqlite3
 import os
 
@@ -18,10 +18,30 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# ================= FRONT =================
+# ================= HOME =================
 @app.route("/")
 def home():
-    return send_from_directory(".", "index.html")
+    return "BTC Clicker is running"
+
+# ================= TELEGRAM AUTH =================
+@app.route("/tg_auth", methods=["POST"])
+def tg_auth():
+    data = request.json
+
+    user_id = str(data["id"])
+    name = data.get("first_name", "player")
+
+    cur.execute("SELECT * FROM users WHERE id=?", (user_id,))
+    row = cur.fetchone()
+
+    if not row:
+        cur.execute(
+            "INSERT INTO users VALUES (?, ?, ?, ?)",
+            (user_id, name, 0, 1)
+        )
+        conn.commit()
+
+    return jsonify({"ok": True, "id": user_id})
 
 # ================= USER =================
 @app.route("/user/<uid>")
@@ -30,9 +50,9 @@ def user(uid):
     row = cur.fetchone()
 
     if not row:
-        row = (uid, "unknown", 0, 1)
-        cur.execute("INSERT INTO users VALUES (?, ?, ?, ?)", row)
+        cur.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (uid, "unknown", 0, 1))
         conn.commit()
+        row = (uid, "unknown", 0, 1)
 
     return jsonify({
         "id": row[0],
