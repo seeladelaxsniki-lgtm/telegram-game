@@ -7,13 +7,45 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
+
+/* ================= BASE ================= */
 body {
   margin:0;
   font-family: Arial;
-  background:#0b0b0b;
+  overflow:hidden;
+  user-select:none; /* ❌ убрали выделение */
   color:white;
 }
 
+/* ================= THEMES ================= */
+body.theme-green {
+  background: radial-gradient(circle, #003b00, #000);
+}
+
+body.theme-blue {
+  background: radial-gradient(circle, #001b3a, #000);
+}
+
+body.theme-space {
+  background: radial-gradient(circle, #0a0a0a, #000);
+}
+
+body.theme-space::before {
+  content:"";
+  position:fixed;
+  width:100%;
+  height:100%;
+  background:url('https://upload.wikimedia.org/wikipedia/commons/3/3f/HST-SM4.jpeg');
+  opacity:0.15;
+  animation:move 60s linear infinite;
+}
+
+@keyframes move {
+  from {transform:translateX(0);}
+  to {transform:translateX(-200px);}
+}
+
+/* ================= HEADER ================= */
 header {
   text-align:center;
   padding:10px;
@@ -21,37 +53,46 @@ header {
   font-weight:bold;
 }
 
+/* ================= ENERGY ================= */
 .energy {
   text-align:center;
-  margin-bottom:10px;
   color:#0f0;
 }
 
-.btc {
-  font-size:180px;
+/* ================= COIN ================= */
+.coin {
+  font-size:170px;
   text-align:center;
-  margin-top:60px;
+  margin-top:40px;
   cursor:pointer;
-  animation: float 3s infinite;
+  transition:0.1s;
 }
 
-@keyframes float {
-  0%{transform:translateY(0)}
-  50%{transform:translateY(-10px)}
-  100%{transform:translateY(0)}
+.coin:active {
+  transform:scale(0.92);
 }
 
+/* ================= UPGRADE INFO ================= */
+.info {
+  text-align:center;
+  margin-top:10px;
+  font-size:14px;
+  color:#aaa;
+}
+
+/* ================= PLUS EFFECT ================= */
 .plus {
   position:absolute;
   color:#f7931a;
-  animation: fade 1s forwards;
+  animation:fade 1s forwards;
 }
 
 @keyframes fade {
   0%{opacity:1;transform:translateY(0)}
-  100%{opacity:0;transform:translateY(-50px)}
+  100%{opacity:0;transform:translateY(-60px)}
 }
 
+/* ================= NAV ================= */
 .nav {
   position:fixed;
   bottom:0;
@@ -62,7 +103,7 @@ header {
 
 .nav button {
   flex:1;
-  padding:15px;
+  padding:12px;
   background:#111;
   border:none;
   color:white;
@@ -73,10 +114,14 @@ header {
   color:black;
 }
 
+/* ================= SCREENS ================= */
 .screen { display:none; }
 .screen.active { display:block; }
 
-.shop { padding:10px; }
+/* ================= SHOP ================= */
+.shop {
+  padding:10px;
+}
 
 .item {
   margin:10px;
@@ -85,17 +130,34 @@ header {
   border-radius:10px;
 }
 
-button.buy {
+button {
   width:100%;
   padding:10px;
   margin-top:5px;
-  background:#f7931a;
   border:none;
+  background:#f7931a;
 }
+
+/* ================= THEME BUTTONS ================= */
+.themes {
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:10px;
+}
+
+.theme-btn {
+  padding:5px 10px;
+  background:#222;
+  border:none;
+  color:white;
+  border-radius:6px;
+}
+
 </style>
 </head>
 
-<body>
+<body class="theme-space">
 
 <header>
 ₿ <span id="coins">0</span>
@@ -104,19 +166,31 @@ button.buy {
 <div class="energy">⚡ Energy: <span id="energy">0</span></div>
 
 <div id="home" class="screen active">
-  <div class="btc" onclick="tap(event)">₿</div>
+
+  <div class="coin" id="coin" onclick="tap(event)">🪙</div>
+
+  <div class="info" id="upgradeInfo">До апгрейда: 100 тапов</div>
+
+  <div class="themes">
+    <button class="theme-btn" onclick="setTheme('theme-green')">Green</button>
+    <button class="theme-btn" onclick="setTheme('theme-blue')">Blue</button>
+    <button class="theme-btn" onclick="setTheme('theme-space')">Space</button>
+  </div>
+
 </div>
 
 <div id="shop" class="screen shop">
+
   <div class="item">
     +1 Power
-    <button class="buy" onclick="buy('p1')">150₿</button>
+    <button onclick="buy('p1')">150₿</button>
   </div>
 
   <div class="item">
     +2 Power
-    <button class="buy" onclick="buy('p2')">400₿</button>
+    <button onclick="buy('p2')">400₿</button>
   </div>
+
 </div>
 
 <div id="top" class="screen">
@@ -134,6 +208,9 @@ button.buy {
 let user;
 let id;
 
+let taps = 0;
+
+/* INIT */
 async function init(){
 
   if(window.Telegram){
@@ -151,14 +228,18 @@ async function init(){
   load();
 }
 
+/* LOAD */
 async function load(){
   let r = await fetch("/user/"+id);
   user = await r.json();
 
   document.getElementById("coins").innerText = user.coins;
   document.getElementById("energy").innerText = user.energy;
+
+  updateUpgrade();
 }
 
+/* TAP */
 async function tap(e){
 
   let r = await fetch("/tap",{
@@ -171,16 +252,26 @@ async function tap(e){
 
   load();
 
-  let el = document.createElement("div");
+  taps++;
+
+  let el=document.createElement("div");
   el.className="plus";
-  el.innerText = "+" + d.crit;
-  el.style.left = e.clientX+"px";
-  el.style.top = e.clientY+"px";
+  el.innerText="+"+d.crit;
+  el.style.left=e.clientX+"px";
+  el.style.top=e.clientY+"px";
   document.body.appendChild(el);
 
   setTimeout(()=>el.remove(),1000);
 }
 
+/* UPGRADE INFO */
+function updateUpgrade(){
+  let next = 100 - (taps % 100);
+  document.getElementById("upgradeInfo").innerText =
+    "До улучшения монетки: " + next + " тапов";
+}
+
+/* BUY */
 async function buy(item){
   await fetch("/buy",{
     method:"POST",
@@ -191,6 +282,12 @@ async function buy(item){
   load();
 }
 
+/* THEMES */
+function setTheme(t){
+  document.body.className = t;
+}
+
+/* TOP */
 async function loadTop(){
   let r = await fetch("/leaderboard");
   let d = await r.json();
@@ -199,6 +296,7 @@ async function loadTop(){
     d.map((x,i)=>`#${i+1} ${x.name} - ${x.coins}`).join("<br>");
 }
 
+/* NAV */
 function show(id,btn){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
