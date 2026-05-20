@@ -1,136 +1,293 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Bitcoin Tap Game</title>
+<meta charset="UTF-8">
+<title>BTC Clicker App</title>
 
-  <style>
-    body {
-      margin: 0;
-      background: radial-gradient(circle at top, #1b1b1b, #0a0a0a);
-      color: white;
-      font-family: Arial;
-      text-align: center;
-      overflow: hidden;
-    }
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background:#0b0b0b;
+  color:white;
+}
 
-    h1 {
-      margin-top: 60px;
-      font-size: 38px;
-      color: #f7931a;
-      text-shadow: 0 0 10px rgba(247,147,26,0.5);
-    }
+/* TOP */
+header {
+  text-align:center;
+  padding:10px;
+  background:#111;
+}
 
-    #coins {
-      font-size: 34px;
-      margin-top: 20px;
-      color: #ffd27a;
-    }
+#coins {
+  font-size:22px;
+  color:#f7931a;
+}
 
-    .btc {
-      font-size: 140px;
-      margin-top: 60px;
-      cursor: pointer;
-      display: inline-block;
-      transition: transform 0.1s ease;
-      filter: drop-shadow(0 0 20px rgba(247,147,26,0.5));
-      animation: float 3s ease-in-out infinite;
-    }
+/* NAV */
+.nav {
+  position:fixed;
+  bottom:0;
+  width:100%;
+  display:flex;
+  background:#111;
+}
 
-    .btc:active {
-      transform: scale(0.92);
-    }
+.nav button {
+  flex:1;
+  padding:15px;
+  border:none;
+  background:#111;
+  color:white;
+}
 
-    @keyframes float {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-      100% { transform: translateY(0px); }
-    }
+.nav button.active {
+  background:#f7931a;
+  color:black;
+}
 
-    .pulse {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: rgba(247,147,26,0.6);
-      animation: pop 0.6s ease-out forwards;
-      pointer-events: none;
-    }
+/* SCREENS */
+.screen {
+  display:none;
+  height:calc(100vh - 120px);
+  text-align:center;
+  animation:fade 0.3s ease;
+}
 
-    @keyframes pop {
-      0% { transform: scale(1); opacity: 1; }
-      100% { transform: scale(6); opacity: 0; }
-    }
+.screen.active {
+  display:block;
+}
 
-    button {
-      margin-top: 30px;
-      font-size: 18px;
-      padding: 10px 20px;
-      border-radius: 10px;
-      border: none;
-      background: #f7931a;
-      color: black;
-      cursor: pointer;
-    }
-  </style>
+@keyframes fade {
+  from {opacity:0; transform:translateY(10px);}
+  to {opacity:1; transform:translateY(0);}
+}
+
+/* BITCOIN */
+.btc {
+  font-size:170px;
+  margin-top:70px;
+  cursor:pointer;
+  animation:float 3s infinite ease-in-out;
+  filter: drop-shadow(0 0 20px #f7931a);
+}
+
+@keyframes float {
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-12px)}
+  100%{transform:translateY(0)}
+}
+
+/* STATS */
+.stat {
+  color:#aaa;
+  margin-top:10px;
+}
+
+/* SHOP */
+.btn {
+  padding:12px 18px;
+  margin:8px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.locked {
+  background:#333;
+  color:#777;
+  opacity:0.5;
+}
+
+.available {
+  background:#ff3b30;
+  color:white;
+  animation:pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%{transform:scale(1)}
+  50%{transform:scale(1.05)}
+  100%{transform:scale(1)}
+}
+
+/* LEADERBOARD */
+.lb {
+  margin-top:20px;
+}
+
+.item {
+  display:flex;
+  justify-content:space-between;
+  padding:10px;
+  background:#111;
+  margin:5px;
+  border-radius:8px;
+}
+</style>
 </head>
 
 <body>
 
-  <h1>⚡ Bitcoin Tap Game</h1>
-
+<header>
   <div id="coins">₿ 0</div>
+  <div class="stat" id="stamina">⚡</div>
+</header>
 
+<!-- HOME -->
+<div id="home" class="screen active">
   <div class="btc" onclick="tap(event)">₿</div>
+  <div class="stat" id="power">Power: 1</div>
+</div>
 
-  <br>
-  <button onclick="reset()">Reset view</button>
+<!-- SHOP -->
+<div id="shop" class="screen">
+  <h3>🛒 Shop</h3>
 
-  <script>
-    let userId = "1";
-    let user = null;
+  <button id="up1" class="btn" onclick="buy1()">+1 Power (150₿)</button>
+  <button id="up2" class="btn" onclick="buy2()">+2 Power (400₿)</button>
+  <button id="st1" class="btn" onclick="buyStam()">+10 Stamina (300₿)</button>
+</div>
 
-    async function load() {
-      let res = await fetch(`/user/${userId}`);
-      user = await res.json();
+<!-- LEADERBOARD -->
+<div id="lb" class="screen">
+  <h3>🏆 Leaderboard</h3>
+  <div id="list"></div>
+</div>
 
-      document.getElementById("coins").innerText =
-        "₿ " + user.coins;
-    }
+<!-- NAV -->
+<div class="nav">
+  <button class="active" onclick="show('home',this)">Home</button>
+  <button onclick="show('shop',this)">Shop</button>
+  <button onclick="show('lb',this);loadLB()">Top</button>
+</div>
 
-    async function tap(e) {
-      user.coins += user.power;
+<script>
 
-      await fetch("/save", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(user)
-      });
+let userId="1";
+let user=null;
 
-      document.getElementById("coins").innerText =
-        "₿ " + user.coins;
+let stamina=20;
+let maxStamina=20;
 
-      createEffect(e);
-    }
+/* LOAD */
+async function load(){
+  let r=await fetch(`/user/${userId}`);
+  user=await r.json();
 
-    function createEffect(e) {
-      const dot = document.createElement("div");
-      dot.classList.add("pulse");
+  if(!user.power) user.power=1;
 
-      dot.style.left = e.clientX + "px";
-      dot.style.top = e.clientY + "px";
+  document.getElementById("coins").innerText="₿ "+user.coins;
+  document.getElementById("power").innerText="Power: "+user.power;
+}
 
-      document.body.appendChild(dot);
+/* TAP + CRIT */
+async function tap(){
+  if(stamina<=0) return;
 
-      setTimeout(() => dot.remove(), 600);
-    }
+  stamina--;
 
-    function reset() {
-      window.scrollTo(0, 0);
-    }
+  let crit = Math.random() < 0.1 ? 5 : (Math.random() < 0.3 ? 2 : 1);
+  let gain = user.power * crit;
 
-    load();
-  </script>
+  user.coins += gain;
+
+  document.getElementById("coins").innerText="₿ "+user.coins;
+
+  setTimeout(()=>{
+    if(stamina<maxStamina) stamina++;
+    update();
+  },800);
+
+  await save();
+  update();
+}
+
+/* SAVE */
+async function save(){
+  await fetch("/save",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(user)
+  });
+}
+
+/* STAMINA UI */
+function update(){
+  document.getElementById("stamina").innerText="⚡ "+stamina+"/"+maxStamina;
+  document.getElementById("power").innerText="Power: "+user.power;
+  updateShop();
+}
+
+/* SHOP UI */
+function updateShop(){
+
+  document.getElementById("up1").className =
+    user.coins>=150 ? "btn available" : "btn locked";
+
+  document.getElementById("up2").className =
+    user.coins>=400 ? "btn available" : "btn locked";
+
+  document.getElementById("st1").className =
+    user.coins>=300 ? "btn available" : "btn locked";
+}
+
+/* SHOP */
+async function buy1(){
+  if(user.coins<150) return;
+  user.coins-=150;
+  user.power+=1;
+  await save(); load();
+}
+
+async function buy2(){
+  if(user.coins<400) return;
+  user.coins-=400;
+  user.power+=2;
+  await save(); load();
+}
+
+async function buyStam(){
+  if(user.coins<300) return;
+  user.coins-=300;
+  maxStamina+=10;
+  stamina=maxStamina;
+  await save(); load();
+}
+
+/* LEADERBOARD */
+async function loadLB(){
+  let r=await fetch("/leaderboard");
+  let data=await r.json();
+
+  let html="";
+
+  data.forEach((u,i)=>{
+    html+=`
+      <div class="item">
+        <div>#${i+1}</div>
+        <div>${u.name}</div>
+        <div>${u.coins} ₿</div>
+      </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML=html;
+}
+
+/* NAV */
+function show(id,btn){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+load();
+
+</script>
 
 </body>
 </html>
